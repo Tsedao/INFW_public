@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+results/
+data/
+infw_tmp/
+*.pkl
+*.pt
+*.pth
