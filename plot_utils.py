@@ -3,7 +3,8 @@ from typing import Dict, Any, Union, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from anytime_infw import AnytimeINFWResult, INGDResult
+from anytime_infw import AnytimeINFWResult
+from ingd import INGDResult
 
 def plot_f_oracle_calls(
     *,

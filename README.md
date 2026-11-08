@@ -1,46 +1,45 @@
 # INFW
 
-NumPy implementation of Inner-INFW (Algorithm 1), FO-Inner-INFW
-(Algorithm 3), and Anytime-INFW (Algorithm 4) from
-*A Parameter-Free Anytime* (the supplied manuscript).
+NumPy implementation of Inner-INFW, FO-Inner-INFW, and Anytime-INFW
+(Algorithms 1, 3, and 4 of the paper).
 
 ## Quick start
 
-Python 3.10 or newer:
+Uses Python 3.11 (selected by `.python-version`) and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Run from the repository root:
 
 ```sh
-python -m pip install numpy
-PYTHONPATH=. python examples/quadratic.py
-python -m unittest discover -s tests -v
+uv sync --locked
+PYTHONPATH=. uv run python examples/quadratic.py
 ```
 
-Provide an oracle with `f(x)`, `oracle_grad(x, direction=None)`, and an
-integer `first_oracle_call` counter. For Algorithm 3 the latter method
-returns the gradient. Algorithm 1 requires equation (2.2)'s directional
-subgradient oracle.
+## Usage
 
-`anytime_infw(x, oracle, AnytimeINFWConfig(T=100, seed=0))` returns the
-last point, diagnostic history, status, and the best certificate tuple
-`(x_best, g_best, epsilon_best, inner_call_number)`. The certificate is
-the anytime output; the last point need not be its location.
+```python
+from anytime_infw import AnytimeINFWConfig, anytime_infw
 
-The default initial scale is the initial gradient norm, as in Algorithm 4.
-`epsilon_1` is an optional experimental override. Iteration limits bound
-execution; `inner_limit` and `scale_limit` indicate incomplete searches.
-No certificate is manufactured from an unfinished solve.
+result = anytime_infw(x0, oracle, AnytimeINFWConfig(T=100, seed=0))
+x_best, g_best, epsilon_best, call_number = result.certificate
+```
 
-## Optional training experiments
+The oracle provides `f(x)`, `oracle_grad(x, direction=None)`, and a
+`first_oracle_call` counter. See `examples/quadratic.py` for a complete example.
+The result includes the final point (`x_T`), history, status, and best
+stationarity certificate. Check `status` for iteration limits.
 
-Install `requirements-experiments.txt` for the retained MNIST/CIFAR-10
-training scripts, models, experiment registry, baseline methods and plot
-helpers. Run `python mnist_train.py --help` or
-`python cifar10_train.py --help` for options. Dataset downloads require
-network access. Use `stochastic=False` for INFW: independent minibatch
-loss comparisons do not implement the fixed-objective paper algorithm.
-Deterministic training uses one cached batch, not the full training set.
-The training and baseline code is retained experimental code; full model
-training and numerical reproduction of paper figures have not been verified.
+## MNIST and CIFAR-10
 
-Generated results, datasets, checkpoints, old plots and Git history are
-excluded. The original folder remains the archive. No license is inferred;
-choose a license and confirm ownership before publishing.
+```sh
+uv sync --locked --extra experiments
+uv run --extra experiments python mnist_train.py --help
+uv run --extra experiments python cifar10_train.py --help
+```
+
+Run a short fixed-batch MNIST experiment:
+
+```sh
+uv run --locked --extra experiments python mnist_train.py --infw --infw-T 5 --hidden 256 --batch-size 256 --seed 0
+```
+
+Results are saved under `results/`; datasets are downloaded to `data/`.
+INFW uses `stochastic=False` by default and trains on one fixed batch.

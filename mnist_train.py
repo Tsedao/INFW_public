@@ -85,7 +85,7 @@ def run_infw_mnist(
     batch_size: int = 256,
     stochastic: bool = False,
     T: int = 50,
-    epsilon_1: float = 1e-1,
+    epsilon_1: Optional[float] = None,
     seed: int = 0,
     device_str: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], AnytimeINFWResult]:
@@ -101,6 +101,7 @@ def run_infw_mnist(
     train_loader, test_loader = init_mnist_dataloader(batch_size=batch_size, device=device)
     model, oracle = init_mnist_model_and_oracle(hidden=hidden, stochastic=stochastic, device=device, train_loader=train_loader)
     def callback_wrapper(x_t: np.ndarray) -> Tuple[float, str]:
+        oracle._set_params_from_numpy(x_t)
         acc = evaluate_accuracy(model, test_loader, device)
         return acc, "test_acc"
      # Config
@@ -108,8 +109,7 @@ def run_infw_mnist(
         T=T,
         epsilon_1=epsilon_1,
         seed=seed,
-        max_inner_iters=20_000,  # can be large; mninfw will usually return early
-        max_epsilon=20.0
+        max_inner_iters=20_000,
     )
     x1_t = oracle._fatten_params().to("cpu").numpy().astype(np.float32)
 
@@ -155,6 +155,7 @@ def run_ingd_mnist(
     train_loader, test_loader = init_mnist_dataloader(batch_size=batch_size, device=device)
     model, oracle = init_mnist_model_and_oracle(hidden=hidden, stochastic=stochastic, device=device, train_loader=train_loader)
     def callback_wrapper(x_t: np.ndarray) -> Tuple[float, str]:
+        oracle._set_params_from_numpy(x_t)
         acc = evaluate_accuracy(model, test_loader, device)
         return acc, "test_acc"
 
@@ -205,6 +206,7 @@ def run_sgd_mnist(
     train_loader, test_loader = init_mnist_dataloader(batch_size=batch_size, device=device)
     model, oracle = init_mnist_model_and_oracle(hidden=hidden, stochastic=stochastic, device=device, train_loader=train_loader)
     def callback_wrapper(x_t: np.ndarray) -> Tuple[float, str]:
+        oracle._set_params_from_numpy(x_t)
         acc = evaluate_accuracy(model, test_loader, device)
         return acc, "test_acc"
     
@@ -256,6 +258,7 @@ def run_stochastic_ingd_mnist(
     train_loader, test_loader = init_mnist_dataloader(batch_size=batch_size, device=device)
     model, oracle = init_mnist_model_and_oracle(hidden=hidden, stochastic=stochastic, device=device, train_loader=train_loader)
     def callback_wrapper(x_t: np.ndarray) -> Tuple[float, str]:
+        oracle._set_params_from_numpy(x_t)
         acc = evaluate_accuracy(model, test_loader, device)
         return acc, "test_acc"
     
@@ -308,6 +311,7 @@ def run_lipschitz_minimization_mnist(
     train_loader, test_loader = init_mnist_dataloader(batch_size=batch_size, device=device)
     model, oracle = init_mnist_model_and_oracle(hidden=hidden, stochastic=stochastic, device=device, train_loader=train_loader)
     def callback_wrapper(x_t: np.ndarray) -> Tuple[float, str]:
+        oracle._set_params_from_numpy(x_t)
         acc = evaluate_accuracy(model, test_loader, device)
         return acc, "test_acc"
 
@@ -342,11 +346,11 @@ def run_lipschitz_minimization_mnist(
 class RunConfig:
     hidden: int = 256
     batch_size: int = 256
-    stochastic: bool = True
+    stochastic: bool = False
     
     ## INFW  ############################################
     infw_T: int = 250
-    infw_epsilon_1: float = 0.4
+    infw_epsilon_1: Optional[float] = None
     #####################################################
 
     ## INGD  ############################################
@@ -391,6 +395,7 @@ if __name__ == "__main__":
     cfg = tyro.cli(RunConfig)
     if cfg.lip_min:
         _, lip_min_out = run_lipschitz_minimization_mnist(
+            hidden=cfg.hidden,
             T=cfg.lip_min_T,
             tolerance=cfg.lip_min_tolerance,
             L=cfg.lip_min_L,
@@ -405,6 +410,7 @@ if __name__ == "__main__":
             pickle.dump(lip_min_out, f)
     if cfg.infw:
         _, infw_out = run_infw_mnist(
+            hidden=cfg.hidden,
             T=cfg.infw_T,
             epsilon_1=cfg.infw_epsilon_1,
             batch_size=cfg.batch_size,
@@ -416,6 +422,7 @@ if __name__ == "__main__":
     ## only call this when we use stochastic INGD implemented by Jinzhao
     if cfg.ingd_jz:
         _, ingd_out = run_stochastic_ingd_mnist(
+            hidden=cfg.hidden,
             T=cfg.ingd_jz_T,
             p=cfg.ingd_jz_p,
             q=cfg.ingd_jz_q,
@@ -428,6 +435,7 @@ if __name__ == "__main__":
             pickle.dump(ingd_out, f)
     if cfg.sgd:
         _, sgd_out = run_sgd_mnist(
+            hidden=cfg.hidden,
             T=cfg.sgd_T,
             lr=cfg.sgd_lr,
             batch_size=cfg.batch_size,
@@ -438,6 +446,7 @@ if __name__ == "__main__":
             pickle.dump(sgd_out, f)
     if cfg.ingd:
         _, ingd_out = run_ingd_mnist(
+            hidden=cfg.hidden,
             T=cfg.ingd_T,
             epsilon_t=cfg.ingd_epsilon_t,
             delta=cfg.ingd_delta,
